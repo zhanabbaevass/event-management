@@ -5,13 +5,19 @@ import com.event.event_app.dto.response.ZhanabaevaGulasylAuthControllerEventResp
 import com.event.event_app.service.ZhanabaevaGulasylEventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/events")
@@ -39,6 +45,25 @@ public class ZhanabaevaGulasylAuthControllerEventController {
     @GetMapping("/{id}")
     public ResponseEntity<ZhanabaevaGulasylAuthControllerEventResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(eventService.getById(id));
+    }
+
+    @GetMapping("/{id}/poster")
+    public ResponseEntity<Resource> downloadPoster(@PathVariable Long id) {
+        try {
+            ZhanabaevaGulasylAuthControllerEventResponse event = eventService.getById(id);
+            Path path = Paths.get("uploads/" + event.getPosterImage());
+            Resource resource = new UrlResource(path.toUri());
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION,
+                                "attachment; filename=\"" + resource.getFilename() + "\"")
+                        .body(resource);
+            } else {
+                throw new RuntimeException("File not found");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Could not download file");
+        }
     }
 
     @PutMapping("/{id}")
